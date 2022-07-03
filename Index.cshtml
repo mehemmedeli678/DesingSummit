@@ -1,0 +1,115 @@
+﻿@model JuryVM
+<main>
+       <section class="voteDesign">
+           <div class="container">
+               <div class="headText">
+                   <div class="d-flex justify-content-between align-items-center">
+                       <div class="left">
+                           <h1>@Model.Info?.SendVote</h1>
+                       </div>
+                       <div class="right">
+                           <span>@Model.Info?.Theme</span>
+                           <h1>@Model.Info?.ThemeName</h1>
+                       </div>
+                   </div>
+               </div>
+               <div class="voteContent">
+                   <input type="hidden" id="lang" value="@(Model.Info?.VoteMessage ?? "")" />
+                   <div class="row align-items-center vote-list">
+                       @foreach (var (item,index) in Model.DesignVM.Select((i,t)=>(i,t)))
+                       {
+                        <div class="col-6 col-sm-6 col-md-4 col-lg-4 col-xl-3 col-xxl-2">
+                        <div class="cardContent">
+                            <div class="contentHead">
+                                <h4>@item.Category?.CategoryLanguages[0]?.Name</h4>
+                                <p>@Model.Info?.Contest</p>
+                            </div>
+                            <div class="contentBody">
+                                <a href="/jury/detail/@item.ID">
+                                 <img src="@item.Picture"> </a>
+                            </div>
+                            <div class="voteStars">
+                                    <ul val=@item?.Score?.Score  class="d-flex align-items-center">
+                                        <li  onclick="vote(this,@item.ID,5)">  <i class="fa-solid fa-star"></i></li>
+                                        <li  onclick="vote(this,@item.ID,10)"> <i class="fa-solid fa-star"></i></li>
+                                        <li  onclick="vote(this,@item.ID,15)"> <i class="fa-solid fa-star"></i></li>
+                                        <li  onclick="vote(this,@item.ID,20)"> <i class="fa-solid fa-star"></i></li>
+                                        <li  onclick="vote(this,@item.ID,25)"> <i class="fa-solid fa-star"></i></li>
+                                    </ul>
+                                    <p class="text"></p>
+                                </div>
+                        </div>
+                      </div>
+                       }
+                   </div>
+                   <div class="d-flex justify-content-center align-items-center">
+                    <a class="load-more" href="">@Model.Info?.LoadMore</a>
+                   </div>
+               </div>
+           </div>
+       </section>
+   </main>
+
+   @section Scripts{
+       <script>
+changeRatingStars()
+function changeRatingStars() {
+    var stars= document.querySelectorAll(".voteStars ul")
+    var lang= $("#lang").val()
+
+    for(var i=0;i<stars.length;i++){
+        var val= stars[i].getAttribute("val")
+        if(val!=null && val!='undefined'){
+        $(stars[i]).parent().find('.text').html('')
+        $(stars[i]).parent().find('.text').append(`<span>${val} ${lang} </span>`)
+           val= (val/5)-1
+        var star= stars[i].children[val]
+        $(stars).children().find('.fa-star').removeClass('gray')
+        $(star).children('.fa-star').addClass('yellow')
+        $(star).children('.fa-star').parent().prevAll().children('.fa-star').addClass('yellow')
+        $(star).children('.fa-star').parent().nextAll().children('.fa-star').addClass('gray');
+        }
+    }
+}
+           var count=6
+       $(".load-more").click(function(e){
+           count=count+6;
+           e.preventDefault();
+           $.ajax({
+               url:"/jury/load",
+               method:"POST",
+               data:{count:count},
+               success:function(res){
+                   //$(".vote-list").html('')
+                   for(var i=0;i<res.value.length;i++){
+                $(".vote-list").append(`<div class="col-6 col-sm-6 col-md-4 col-lg-4 col-xl-3 col-xxl-2"> <div class="cardContent"> <div class="contentHead"> <h4>${res.value[i].category.categoryLanguages[0].name}</h4> <p>Müsabiqəsi</p> </div> <div class="contentBody"> <a href="/jury/detail/${res.value[i].id}">   <img src="${res.value[i].picture}"> </a> </div> <div class="voteStars"> <ul val=${res.value[i].score?.score} class="d-flex align-items-center"> <li onclick="vote(this,${res.value[i].id},5)"><i class="fa-solid fa-star"></i></li> <li onclick="vote(this,${res.value[i].id},10)"> <i class="fa-solid fa-star"></i></li> <li onclick="vote(this,${res.value[i].id},15)"> <i  class="fa-solid fa-star"></i></li>   <li onclick="vote(this,${res.value[i].id},20)"> <i class="fa-solid fa-star"></i></li> <li onclick="vote(this,${res.value[i].id},25)"> <i class="fa-solid fa-star"></i></li> </ul> <p class="text"></p> </div> </div> </div>`)
+                   }
+                   changeRatingStars()
+               }
+           })
+       })
+
+       function vote(event,id,val){
+          var star= $(event).find("i")
+          var lang= $("#lang").val()
+          $.ajax({
+              url:"/jury/vote",
+              method:"POST",
+              data:{vote:val,id:id},
+              success:function(res){
+                  if(res.value!=null){
+                     star.parent().parent().find('.fa-star').removeClass('gray');
+                     star.parent().parent().find('.fa-star').removeClass('yellow');
+                   if(res.value!=0){
+                    star.addClass('yellow');
+                    star.parent().prevAll().children('.fa-star').addClass('yellow');
+                    star.parent().nextAll().children('.fa-star').addClass('gray');
+                   }
+                    star.parent().parent().parent().find('.text').html(``)
+                    star.parent().parent().parent().find('.text').append(`<span>${res.value} ${lang}</span>`)
+                  }
+              }
+          })
+       }
+       </script>
+   }
